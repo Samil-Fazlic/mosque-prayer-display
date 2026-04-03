@@ -7,11 +7,10 @@ const MOSQUE = {
   line1: "ISLAMSKA ZAJEDNICA BOŠNJAKA U NJEMAČKOJ",
   line2: "MEDŽLIS ISLAMSKE ZAJEDNICE BAYERN",
   line3: "Džemat Tevhid",
-  address: "Ligsalzstraße 31A, 80339 München",
+  welcomeLine1: "Islamska zajednica Bošnjaka u Njemačkoj",
+  welcomeLine2: "Dobrodošli u džemat Tevhid",
   lat: 48.1351, lng: 11.5650,
   method: 99, methodSettings: "18,null,17", school: 0,
-  iqamaOffsets: { Fajr: 30, Dhuhr: 15, Asr: 15, Maghrib: 7, Isha: 15 },
-  welcomeMsg: "Islamska zajednica Bošnjaka u Njemačkoj\nDobrodošli u džemat Tevhid",
 };
 
 // HIJRI
@@ -23,23 +22,21 @@ function localCalc(date,lat,lng){const D=Math.PI/180,R=180/Math.PI,s=d=>Math.sin
 const clean=t=>t?t.replace(/\s*\(.*\)/,""):"--:--";
 const toMin=t=>{if(!t||t==="--:--")return 0;const[h,m]=clean(t).split(":").map(Number);return h*60+m;};
 
-// ============================================================
-// COLORS
-// ============================================================
-const GREEN = "#2E7D32";
-const GREEN_L = "#43A047";
-const GREEN_D = "#1B5E20";
-const TEXT_DARK = "#2c2c2c";
-const TEXT_MED = "#555";
-const TEXT_LIGHT = "#888";
-const BG = "#e8e0d0";
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const DAYS_SHORT = ["N","P","U","S","Č","P","S"];
 
 // ============================================================
-// DAY ABBREVIATIONS (Bosnian)
+// CRESCENT + STAR SVG
 // ============================================================
-const DAY_ABBR = ["N","P","U","S","Č","P","S"];
-const DAY_FULL = ["Nedjelja","Ponedjeljak","Utorak","Srijeda","Četvrtak","Petak","Subota"];
-const MONTHS_DE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function CrescentStar({size=40}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 50 50" style={{flexShrink:0}}>
+      <circle cx="20" cy="24" r="15" fill="none" stroke="#2E7D32" strokeWidth="2"/>
+      <circle cx="27" cy="24" r="13.5" fill="#ddd8c8"/>
+      <polygon points="40,10 41.8,15 47,15 42.8,18 44.5,23 40,20 35.5,23 37.2,18 33,15 38.2,15" fill="#2E7D32"/>
+    </svg>
+  );
+}
 
 // ============================================================
 // MAIN
@@ -68,7 +65,6 @@ export default function App(){
   const hijri=useMemo(()=>toHijri(now),[now.getDate()]);
   const nowM=now.getHours()*60+now.getMinutes();
 
-  // Next prayer
   const next=useMemo(()=>{
     if(!times)return{name:"...",cd:"--:--:--"};
     const o=[{k:"Fajr",n:"Sabah-namaz"},{k:"Sunrise",n:"Izlazak sunca"},{k:"Dhuhr",n:"Podne-namaz"},{k:"Asr",n:"Ikindija-namaz"},{k:"Maghrib",n:"Akšam-namaz"},{k:"Isha",n:"Jacija-namaz"}];
@@ -76,127 +72,186 @@ export default function App(){
     return{name:"Sabah-namaz",cd:"--:--:--"};
   },[now,times]);
 
-  // Active prayer highlight
   const active=useMemo(()=>{
     if(!times)return"Isha";let a="Isha";for(const k of["Fajr","Dhuhr","Asr","Maghrib","Isha"]){if(nowM<toMin(times[k]))break;a=k;}return a;
   },[now,times]);
 
-  const clock=`${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}:${String(now.getSeconds()).padStart(2,"0")}`;
-  const dateStr=`${String(now.getDate()).padStart(2,"0")}. ${MONTHS_DE[now.getMonth()]} ${now.getFullYear()}.`;
-  const hijriStr=`${hijri.day}. ${hijri.monthName} ${hijri.year}.`;
+  const hh=String(now.getHours()).padStart(2,"0");
+  const mm=String(now.getMinutes()).padStart(2,"0");
+  const ss=String(now.getSeconds()).padStart(2,"0");
+  const dateStr=`${String(now.getDate()).padStart(2,"0")}. ${MONTHS[now.getMonth()]} ${now.getFullYear()}.`;
+  const hijriStr=`${hijri.day}. ${hijri.monthName}\n${hijri.year}.`;
   const todayIdx=now.getDay();
 
   const prayers=times?[
-    {k:"Fajr",bs:"Zora",ar:"إمساك",t:clean(times.Fajr)},
-    {k:"Sunrise",bs:"Iz. sunca",ar:"الشروق",t:clean(times.Sunrise)},
-    {k:"Dhuhr",bs:"Podne",ar:"الظهر",t:clean(times.Dhuhr)},
-    {k:"Asr",bs:"Ikindija",ar:"العصر",t:clean(times.Asr)},
-    {k:"Maghrib",bs:"Akšam",ar:"المغرب",t:clean(times.Maghrib)},
-    {k:"Isha",bs:"Jacija",ar:"العشاء",t:clean(times.Isha)},
+    {bs:"Zora",ar:"إمساك",t:clean(times.Fajr),k:"Fajr"},
+    {bs:"Iz. sunca",ar:"الشروق",t:clean(times.Sunrise),k:"Sunrise"},
+    {bs:"Podne",ar:"الظهر",t:clean(times.Dhuhr),k:"Dhuhr"},
+    {bs:"Ikindija",ar:"العصر",t:clean(times.Asr),k:"Asr"},
+    {bs:"Akšam",ar:"المغرب",t:clean(times.Maghrib),k:"Maghrib"},
+    {bs:"Jacija",ar:"العشاء",t:clean(times.Isha),k:"Isha"},
   ]:[];
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  // Shared shadow
+  const cardShadow = "0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)";
+  const cardBg = "rgba(255,255,255,0.62)";
+  const G = "#2E7D32";
+  const GD = "#1B5E20";
+  const GL = "#43A047";
+
   return(
-    <div style={{position:"relative",width:"100%",height:"100vh",overflow:"hidden",fontFamily:"'Outfit',sans-serif",color:TEXT_DARK,display:"flex",flexDirection:"column"}}>
+    <div style={{
+      position:"relative",width:"100%",height:"100vh",overflow:"hidden",
+      fontFamily:"'Outfit',sans-serif",color:"#2a2a2a",
+      display:"flex",flexDirection:"column",
+    }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Amiri:wght@400;700&display=swap');
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Amiri:wght@400;700&display=swap');
+        @keyframes countPulse{0%,100%{opacity:1}50%{opacity:.4}}
         *{margin:0;padding:0;box-sizing:border-box}
       `}</style>
 
-      {/* Arabesque pattern background */}
-      <div style={{position:"absolute",inset:0,backgroundImage:"url(/pattern-bg.jpg)",backgroundSize:"cover",backgroundPosition:"center",zIndex:0}}/>
+      {/* BG pattern */}
+      <div style={{position:"absolute",inset:0,backgroundImage:"url(/pattern-bg.jpg)",backgroundSize:"cover",backgroundPosition:"center"}}/>
 
-      {/* Content */}
-      <div style={{position:"relative",zIndex:1,flex:1,display:"flex",padding:24,gap:24}}>
+      {/* Main layout */}
+      <div style={{position:"relative",zIndex:1,flex:1,display:"flex",padding:"28px 32px 16px",gap:28}}>
 
-        {/* ============ LEFT SIDE ============ */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:0}}>
+        {/* ========== LEFT PANEL ========== */}
+        <div style={{flex:"1 1 55%",display:"flex",flexDirection:"column"}}>
 
-          {/* Header: Logo + Mosque Name */}
-          <div style={{display:"flex",alignItems:"flex-start",gap:14,marginBottom:20}}>
-            {/* Crescent + Star Icon */}
-            <div style={{marginTop:2}}>
-              <svg width="44" height="44" viewBox="0 0 50 50">
-                <circle cx="22" cy="25" r="16" fill="none" stroke={GREEN_D} strokeWidth="2.5"/>
-                <circle cx="28" cy="25" r="14" fill={BG}/>
-                <polygon points="38,12 39.5,16 44,16 40.5,18.5 42,23 38,20 34,23 35.5,18.5 32,16 36.5,16" fill={GREEN_D}/>
-              </svg>
-            </div>
+          {/* Header: Crescent + Name */}
+          <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:24}}>
+            <CrescentStar size={42}/>
             <div>
-              <div style={{fontSize:14,fontWeight:700,color:GREEN_D,letterSpacing:".04em",lineHeight:1.3}}>{MOSQUE.line1}</div>
-              <div style={{fontSize:12,fontWeight:600,color:TEXT_MED,letterSpacing:".03em"}}>{MOSQUE.line2}</div>
-              <div style={{fontSize:16,fontWeight:500,color:GREEN,fontStyle:"italic",marginTop:2}}>{MOSQUE.line3}</div>
+              <div style={{fontSize:13.5,fontWeight:700,color:GD,letterSpacing:".03em",lineHeight:1.35}}>{MOSQUE.line1}</div>
+              <div style={{fontSize:11.5,fontWeight:600,color:"#5a5a5a",letterSpacing:".02em",lineHeight:1.35}}>{MOSQUE.line2}</div>
+              <div style={{fontSize:15,fontWeight:500,color:G,fontStyle:"italic",marginTop:3,letterSpacing:".01em"}}>{MOSQUE.line3}</div>
             </div>
           </div>
 
-          {/* BIG CLOCK */}
-          <div style={{background:"rgba(255,255,255,0.5)",border:"1px solid rgba(0,0,0,0.08)",borderRadius:12,padding:"20px 32px",textAlign:"center",marginBottom:16}}>
-            <div style={{fontSize:72,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",color:TEXT_DARK,letterSpacing:"-0.02em",lineHeight:1}}>{clock}</div>
+          {/* Clock card */}
+          <div style={{
+            background:cardBg,backdropFilter:"blur(8px)",
+            borderRadius:14,padding:"24px 0",textAlign:"center",
+            boxShadow:cardShadow,marginBottom:20,
+            border:"1px solid rgba(255,255,255,0.5)",
+          }}>
+            <div style={{
+              fontSize:76,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",
+              color:"#1a1a1a",letterSpacing:"-0.03em",lineHeight:1,
+            }}>
+              {hh}:{mm}<span style={{fontSize:52,fontWeight:500,color:"#555"}}>{ss}</span>
+            </div>
           </div>
 
-          {/* Day of week pills */}
-          <div style={{display:"flex",justifyContent:"center",gap:8,marginBottom:16}}>
-            {DAY_ABBR.map((d,i)=>(
+          {/* Day pills row */}
+          <div style={{display:"flex",justifyContent:"center",gap:10,marginBottom:18}}>
+            {DAYS_SHORT.map((d,i)=>(
               <div key={i} style={{
-                width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",
-                fontSize:13,fontWeight:700,
-                background:i===todayIdx?GREEN:"transparent",
-                color:i===todayIdx?"#fff":TEXT_MED,
-                border:i===todayIdx?"none":"1px solid rgba(0,0,0,0.1)",
+                width:38,height:38,borderRadius:"50%",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:14,fontWeight:i===todayIdx?800:500,
+                background:i===todayIdx?G:"transparent",
+                color:i===todayIdx?"#fff":"#888",
+                boxShadow:i===todayIdx?"0 2px 8px rgba(46,125,50,0.35)":"none",
+                border:i===todayIdx?"none":"1.5px solid rgba(0,0,0,0.08)",
+                transition:"all .3s",
               }}>{d}</div>
             ))}
           </div>
 
-          {/* Date row */}
-          <div style={{display:"flex",justifyContent:"center",gap:16,marginBottom:20}}>
-            <div style={{background:GREEN,color:"#fff",borderRadius:8,padding:"8px 20px",fontSize:14,fontWeight:600}}>{dateStr}</div>
-            <div style={{background:"rgba(255,255,255,0.6)",border:"1px solid rgba(0,0,0,0.1)",borderRadius:8,padding:"8px 20px",fontSize:14,fontWeight:600,color:TEXT_DARK}}>{hijriStr}</div>
+          {/* Date badges */}
+          <div style={{display:"flex",justifyContent:"center",gap:14,marginBottom:24}}>
+            <div style={{
+              background:G,color:"#fff",borderRadius:10,padding:"10px 24px",
+              fontSize:15,fontWeight:700,boxShadow:"0 2px 8px rgba(46,125,50,0.3)",
+              letterSpacing:".01em",
+            }}>{dateStr}</div>
+            <div style={{
+              background:cardBg,backdropFilter:"blur(6px)",
+              border:"1.5px solid rgba(0,0,0,0.08)",borderRadius:10,
+              padding:"10px 24px",fontSize:15,fontWeight:700,color:"#2a2a2a",
+              boxShadow:cardShadow,textAlign:"center",lineHeight:1.3,
+            }}>{hijri.day}. {hijri.monthName}<br/>{hijri.year}.</div>
           </div>
 
           {/* Next prayer countdown */}
-          <div style={{textAlign:"center",marginBottom:16}}>
-            <div style={{fontSize:14,fontWeight:500,color:TEXT_MED}}>{next.name}</div>
-            <div style={{fontSize:48,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",color:GREEN,letterSpacing:"-0.02em",animation:"pulse 2s ease-in-out infinite"}}>{next.cd}</div>
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{fontSize:15,fontWeight:500,color:"#666",marginBottom:4}}>{next.name}</div>
+            <div style={{
+              fontSize:54,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",
+              color:G,letterSpacing:"-0.02em",lineHeight:1,
+              animation:"countPulse 2s ease-in-out infinite",
+            }}>{next.cd}</div>
           </div>
 
-          {/* Welcome message */}
-          <div style={{background:GREEN,borderRadius:10,padding:"12px 20px",textAlign:"center"}}>
-            <div style={{fontSize:14,fontWeight:600,color:"#fff",lineHeight:1.5}}>
-              {MOSQUE.welcomeMsg.split("\n").map((line,i)=><div key={i}>{line}</div>)}
+          {/* Welcome banner */}
+          <div style={{
+            background:G,borderRadius:12,padding:"14px 24px",textAlign:"center",
+            boxShadow:"0 3px 12px rgba(46,125,50,0.3)",
+            marginTop:"auto",
+          }}>
+            <div style={{fontSize:14,fontWeight:600,color:"#fff",lineHeight:1.6}}>
+              {MOSQUE.welcomeLine1}<br/>{MOSQUE.welcomeLine2}
             </div>
           </div>
         </div>
 
-        {/* ============ RIGHT SIDE: Prayer Times ============ */}
-        <div style={{width:420,display:"flex",flexDirection:"column",gap:0}}>
-          {/* Header */}
-          <div style={{background:GREEN,borderRadius:"10px 10px 0 0",padding:"10px 24px",textAlign:"center"}}>
-            <div style={{fontSize:18,fontWeight:800,color:"#fff",letterSpacing:".08em"}}>VRIJEME NAMAZA</div>
+        {/* ========== RIGHT PANEL: Prayer Times ========== */}
+        <div style={{flex:"0 0 400px",display:"flex",flexDirection:"column"}}>
+
+          {/* Green header */}
+          <div style={{
+            background:`linear-gradient(135deg, ${GD}, ${GL})`,
+            borderRadius:"14px 14px 0 0",padding:"14px 28px",textAlign:"center",
+            boxShadow:"0 3px 10px rgba(46,125,50,0.25)",
+          }}>
+            <div style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:".1em"}}>VRIJEME NAMAZA</div>
           </div>
 
           {/* Prayer rows */}
-          <div style={{background:"rgba(255,255,255,0.55)",borderRadius:"0 0 10px 10px",border:"1px solid rgba(0,0,0,0.06)",overflow:"hidden"}}>
+          <div style={{
+            background:cardBg,backdropFilter:"blur(8px)",
+            borderRadius:"0 0 14px 14px",
+            border:"1px solid rgba(255,255,255,0.5)",
+            borderTop:"none",
+            boxShadow:cardShadow,
+            overflow:"hidden",flex:1,display:"flex",flexDirection:"column",
+          }}>
             {prayers.map((p,i)=>{
-              const isA=active===p.k;
-              const isMaghrib=p.k==="Maghrib";
+              const isActive = (p.k==="Fajr"||p.k==="Dhuhr"||p.k==="Asr"||p.k==="Maghrib"||p.k==="Isha") && active===p.k;
               return(
                 <div key={p.k} style={{
-                  display:"flex",alignItems:"center",
-                  padding:"14px 24px",
+                  flex:1,display:"flex",alignItems:"center",
+                  padding:"0 28px",
                   borderBottom:i<prayers.length-1?"1px solid rgba(0,0,0,0.06)":"none",
-                  background:isA?"rgba(46,125,50,0.08)":"transparent",
+                  background:isActive?"rgba(46,125,50,0.06)":"transparent",
+                  transition:"background .4s",
                 }}>
                   {/* Bosnian name */}
-                  <div style={{width:100,fontSize:16,fontWeight:isA?700:500,color:isA?GREEN:TEXT_DARK}}>{p.bs}</div>
-                  {/* Time */}
+                  <div style={{
+                    width:95,fontSize:16,fontWeight:isActive?700:500,
+                    color:isActive?G:"#444",
+                  }}>{p.bs}</div>
+
+                  {/* Time — big and bold */}
                   <div style={{flex:1,textAlign:"center"}}>
-                    <span style={{fontSize:36,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",color:isA?GREEN_D:TEXT_DARK}}>{p.t}</span>
+                    <span style={{
+                      fontSize:42,fontWeight:800,
+                      fontFamily:"'JetBrains Mono',monospace",
+                      color:isActive?GD:"#1a1a1a",
+                      letterSpacing:"-0.02em",
+                    }}>{p.t}</span>
                   </div>
+
                   {/* Arabic name */}
-                  <div style={{width:80,textAlign:"right",fontSize:20,fontFamily:"'Amiri',serif",color:TEXT_MED,direction:"rtl"}}>{p.ar}</div>
+                  <div style={{
+                    width:70,textAlign:"right",
+                    fontSize:22,fontFamily:"'Amiri',serif",
+                    color:isActive?"#555":"#888",
+                    direction:"rtl",
+                  }}>{p.ar}</div>
                 </div>
               );
             })}
@@ -204,8 +259,11 @@ export default function App(){
         </div>
       </div>
 
-      {/* ============ FOOTER ============ */}
-      <div style={{position:"relative",zIndex:1,textAlign:"center",padding:"6px 32px",fontSize:11,color:TEXT_LIGHT}}>
+      {/* Footer */}
+      <div style={{
+        position:"relative",zIndex:1,textAlign:"center",
+        padding:"8px 32px 12px",fontSize:11,fontWeight:400,color:"#aaa",
+      }}>
         Powered by Samil Fazlic
       </div>
     </div>
