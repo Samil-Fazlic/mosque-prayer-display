@@ -1,29 +1,25 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 /* CONFIG */
 const C = {
-  name: "Džemat Tevhid",
-  sub: "Islamska zajednica Bošnjaka u Njemačkoj · Medžlis IZ Bayern",
+  line1: "ISLAMSKA ZAJEDNICA BOŠNJAKA U NJEMAČKOJ",
+  line2: "MEDŽLIS ISLAMSKE ZAJEDNICE BAYERN",
+  line3: "Džemat Tevhid",
+  welcome1: "Islamska zajednica Bošnjaka u Njemačkoj",
+  welcome2: "Dobrodošli u džemat Tevhid",
   lat: 48.1351, lng: 11.5650,
   method: 99, methodSettings: "18,null,17", school: 0,
-  iqama: { Fajr:30, Dhuhr:15, Asr:15, Maghrib:7, Isha:15 },
-  jumuah: "13:30", khutba: "13:00",
 };
 
-/* HIJRI */
 function toH(d){const gd=d.getDate(),gm=d.getMonth()+1,gy=d.getFullYear();let jd=Math.floor((1461*(gy+4800+Math.floor((gm-14)/12)))/4)+Math.floor((367*(gm-2-12*Math.floor((gm-14)/12)))/12)-Math.floor((3*Math.floor((gy+4900+Math.floor((gm-14)/12))/100))/4)+gd-32075;const l=jd-1948440+10632,n=Math.floor((l-1)/10631),lp=l-10631*n+354,j=Math.floor((10985-lp)/5316)*Math.floor((50*lp)/17719)+Math.floor(lp/5670)*Math.floor((43*lp)/15238),lpp=lp-Math.floor((30-j)/15)*Math.floor((17719*j)/50)-Math.floor(j/16)*Math.floor((15238*j)/43)+29,hm=Math.floor((24*lpp)/709),hd=lpp-Math.floor((709*hm)/24),hy=30*n+j-30;const nm=["Muharrem","Safer","Rebi'u-l-evvel","Rebi'u-l-ahir","Džumade-l-ula","Džumade-l-ahira","Redžeb","Ša'ban","Ramazan","Ševval","Zu-l-ka'de","Zu-l-hidždže"];return{d:hd,mn:nm[hm-1]||"",y:hy};}
 
-/* LOCAL FALLBACK */
 function loc(date,lat,lng){const D=Math.PI/180,R=180/Math.PI,s=d=>Math.sin(d*D),c=d=>Math.cos(d*D),t=d=>Math.tan(d*D);const y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();const ay=m<=2?y-1:y,am=m<=2?m+12:m,A=Math.floor(ay/100),B=2-A+Math.floor(A/4);const jd=Math.floor(365.25*(ay+4716))+Math.floor(30.6001*(am+1))+d+B-1524.5,DD=jd-2451545,g=(357.529+.98560028*DD)%360,q=(280.459+.98564736*DD)%360,L=(q+1.915*s(g)+.02*s(2*g))%360,e=23.439-.00000036*DD,RA=Math.atan2(c(e)*s(L),c(L))*R/15,decl=Math.asin(s(e)*s(L))*R;let EqT=q/15-((RA+360)%24);if(EqT>12)EqT-=24;const tz=new Date().getTimezoneOffset()/-60,dh=12+tz-lng/15-EqT;const ha=a=>{const v=(s(a)-s(lat)*s(decl))/(c(lat)*c(decl));return v>1||v<-1?NaN:Math.acos(v)*R/15;};const f=h=>{if(isNaN(h))return"--:--";let hr=Math.floor(h),mn=Math.round((h-hr)*60);if(mn>=60){hr++;mn=0;}if(hr>=24)hr-=24;return`${String(hr).padStart(2,"0")}:${String(mn).padStart(2,"0")}`;};return{Fajr:f(dh-ha(-18)),Sunrise:f(dh-ha(-.833)),Dhuhr:f(dh),Asr:f(dh+ha(R*Math.atan(1/(1+t(Math.abs(lat-decl)))))),Maghrib:f(dh+ha(-.833)),Isha:f(dh+ha(-17))};}
 
 const cl=t=>t?t.replace(/\s*\(.*\)/,""):"--:--";
 const toM=t=>{if(!t||t==="--:--")return 0;const[h,m]=cl(t).split(":").map(Number);return h*60+m;};
-const addM=(t,m)=>{if(!t||t==="--:--")return"--:--";const[h,mn]=cl(t).split(":").map(Number);const tot=h*60+mn+m;return`${String(Math.floor(tot/60)%24).padStart(2,"0")}:${String(tot%60).padStart(2,"0")}`;};
-
 const MO=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
-const DB=["Nedjelja","Ponedjeljak","Utorak","Srijeda","Četvrtak","Petak","Subota"];
+const DA=["N","P","U","S","Č","P","S"];
 
-/* ═══════════════════════════════════════════════════════════════ */
 export default function App(){
   const[now,setNow]=useState(new Date());
   const[times,setTimes]=useState(null);
@@ -32,277 +28,220 @@ export default function App(){
 
   useEffect(()=>{const t=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(t);},[]);
 
-  // Particle system
+  // Particles
   useEffect(()=>{
-    const canvas=canvasRef.current;
-    if(!canvas)return;
-    const ctx=canvas.getContext("2d");
-    let w=canvas.width=window.innerWidth;
-    let h=canvas.height=window.innerHeight;
-    let raf;
-
-    const particles=Array.from({length:60},()=>({
-      x:Math.random()*w,y:Math.random()*h,
-      vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15,
-      r:Math.random()*1.5+.5,
-      o:Math.random()*.15+.03,
-      pulse:Math.random()*Math.PI*2,
-    }));
-
+    const cv=canvasRef.current;if(!cv)return;
+    const ctx=cv.getContext("2d");
+    let w=cv.width=window.innerWidth,h=cv.height=window.innerHeight,raf;
+    const pts=Array.from({length:50},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.12,vy:(Math.random()-.5)*.12,r:Math.random()*1.2+.4,o:Math.random()*.12+.02,p:Math.random()*6.28}));
     const draw=()=>{
-      ctx.clearRect(0,0,w,h);
-      const t=Date.now()*.001;
-      particles.forEach(p=>{
-        p.x+=p.vx;p.y+=p.vy;
-        if(p.x<0)p.x=w;if(p.x>w)p.x=0;
-        if(p.y<0)p.y=h;if(p.y>h)p.y=0;
-        const o=p.o*(0.6+0.4*Math.sin(t+p.pulse));
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-        ctx.fillStyle=`rgba(180,220,200,${o})`;
-        ctx.fill();
-      });
-
-      // Draw connections between nearby particles
-      for(let i=0;i<particles.length;i++){
-        for(let j=i+1;j<particles.length;j++){
-          const dx=particles[i].x-particles[j].x;
-          const dy=particles[i].y-particles[j].y;
-          const dist=Math.sqrt(dx*dx+dy*dy);
-          if(dist<150){
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x,particles[i].y);
-            ctx.lineTo(particles[j].x,particles[j].y);
-            ctx.strokeStyle=`rgba(100,200,160,${0.02*(1-dist/150)})`;
-            ctx.lineWidth=.5;
-            ctx.stroke();
-          }
-        }
-      }
-      raf=requestAnimationFrame(draw);
-    };
+      ctx.clearRect(0,0,w,h);const t=Date.now()*.001;
+      pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=w;if(p.x>w)p.x=0;if(p.y<0)p.y=h;if(p.y>h)p.y=0;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.28);ctx.fillStyle=`rgba(160,210,180,${p.o*(.5+.5*Math.sin(t+p.p))})`;ctx.fill();});
+      for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(120,200,160,${.015*(1-d/120)})`;ctx.lineWidth=.5;ctx.stroke();}}
+      raf=requestAnimationFrame(draw);};
     draw();
-
-    const resize=()=>{w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;};
-    window.addEventListener("resize",resize);
-    return()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
+    const rs=()=>{w=cv.width=innerWidth;h=cv.height=innerHeight;};
+    window.addEventListener("resize",rs);
+    return()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",rs);};
   },[]);
 
-  // Fetch times
   useEffect(()=>{
     const k=`${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
     if(k===ld.current&&times)return;
-    (async()=>{try{
-      const dd=String(now.getDate()).padStart(2,"0"),mm=String(now.getMonth()+1).padStart(2,"0");
+    (async()=>{try{const dd=String(now.getDate()).padStart(2,"0"),mm=String(now.getMonth()+1).padStart(2,"0");
       const r=await fetch(`https://api.aladhan.com/v1/timings/${dd}-${mm}-${now.getFullYear()}?latitude=${C.lat}&longitude=${C.lng}&method=${C.method}&methodSettings=${C.methodSettings}&school=${C.school}`);
-      const d=await r.json();
-      if(d.code===200){const t=d.data.timings;setTimes({Fajr:t.Fajr,Sunrise:t.Sunrise,Dhuhr:t.Dhuhr,Asr:t.Asr,Maghrib:t.Maghrib,Isha:t.Isha});ld.current=k;}
-      else throw 0;
+      const d=await r.json();if(d.code===200){const t=d.data.timings;setTimes({Fajr:t.Fajr,Sunrise:t.Sunrise,Dhuhr:t.Dhuhr,Asr:t.Asr,Maghrib:t.Maghrib,Isha:t.Isha});ld.current=k;}else throw 0;
     }catch{setTimes(loc(now,C.lat,C.lng));ld.current=k;}})();
   },[now.getDate()]);
 
   const hij=useMemo(()=>toH(now),[now.getDate()]);
   const nM=now.getHours()*60+now.getMinutes();
-
   const nxt=useMemo(()=>{
-    if(!times)return{n:"",cd:"--:--:--",pct:0};
-    const s=[{k:"Fajr",n:"Sabah"},{k:"Sunrise",n:"Izlazak sunca"},{k:"Dhuhr",n:"Podne"},{k:"Asr",n:"Ikindija"},{k:"Maghrib",n:"Akšam"},{k:"Isha",n:"Jacija"}];
-    let prevM=0;
-    for(let i=0;i<s.length;i++){
-      const m=toM(times[s[i].k]);
-      if(m>nM){
-        const d=m-nM,ts=d*60-now.getSeconds();
-        const h=Math.floor(ts/3600),mn=Math.floor((ts%3600)/60),sc=ts%60;
-        prevM=i>0?toM(times[s[i-1].k]):0;
-        const span=m-prevM||1;
-        return{n:s[i].n,cd:`${String(h).padStart(2,"0")}:${String(mn).padStart(2,"0")}:${String(Math.max(0,sc)).padStart(2,"0")}`,pct:Math.min(100,((nM-prevM)/span)*100)};
-      }
-    }
-    return{n:"Sabah",cd:"--:--:--",pct:100};
+    if(!times)return{n:"...",cd:"--:--:--"};
+    const s=[{k:"Fajr",n:"Sabah-namaz"},{k:"Sunrise",n:"Izlazak sunca"},{k:"Dhuhr",n:"Podne-namaz"},{k:"Asr",n:"Ikindija-namaz"},{k:"Maghrib",n:"Akšam-namaz"},{k:"Isha",n:"Jacija-namaz"}];
+    for(const p of s){const m=toM(times[p.k]);if(m>nM){const d=m-nM,ts=d*60-now.getSeconds(),h=Math.floor(ts/3600),mn=Math.floor((ts%3600)/60),sc=ts%60;return{n:p.n,cd:`${String(h).padStart(2,"0")}:${String(mn).padStart(2,"0")}:${String(Math.max(0,sc)).padStart(2,"0")}`};}}
+    return{n:"Sabah-namaz",cd:"--:--:--"};
   },[now,times]);
-
   const act=useMemo(()=>{if(!times)return"Isha";let a="Isha";for(const k of["Fajr","Dhuhr","Asr","Maghrib","Isha"]){if(nM<toM(times[k]))break;a=k;}return a;},[now,times]);
 
   const hh=String(now.getHours()).padStart(2,"0");
   const mi=String(now.getMinutes()).padStart(2,"0");
   const ss=String(now.getSeconds()).padStart(2,"0");
+  const dateStr=`${String(now.getDate()).padStart(2,"0")}. ${MO[now.getMonth()]} ${now.getFullYear()}.`;
 
   const prayers=times?[
-    {k:"Fajr",bs:"Sabah",t:cl(times.Fajr),iq:addM(cl(times.Fajr),C.iqama.Fajr)},
-    {k:"Dhuhr",bs:"Podne",t:cl(times.Dhuhr),iq:addM(cl(times.Dhuhr),C.iqama.Dhuhr)},
-    {k:"Asr",bs:"Ikindija",t:cl(times.Asr),iq:addM(cl(times.Asr),C.iqama.Asr)},
-    {k:"Maghrib",bs:"Akšam",t:cl(times.Maghrib),iq:addM(cl(times.Maghrib),C.iqama.Maghrib)},
-    {k:"Isha",bs:"Jacija",t:cl(times.Isha),iq:addM(cl(times.Isha),C.iqama.Isha)},
+    {k:"Fajr",bs:"Zora",ar:"إمساك",t:cl(times.Fajr)},
+    {k:"Sunrise",bs:"Iz. sunca",ar:"الشروق",t:cl(times.Sunrise)},
+    {k:"Dhuhr",bs:"Podne",ar:"الظهر",t:cl(times.Dhuhr)},
+    {k:"Asr",bs:"Ikindija",ar:"العصر",t:cl(times.Asr)},
+    {k:"Maghrib",bs:"Akšam",ar:"المغرب",t:cl(times.Maghrib)},
+    {k:"Isha",bs:"Jacija",ar:"العشاء",t:cl(times.Isha)},
   ]:[];
 
-  // Arc for countdown
-  const arcRadius=54;
-  const arcCirc=2*Math.PI*arcRadius;
-  const arcOffset=arcCirc-(nxt.pct/100)*arcCirc;
+  const G="rgba(52,211,153,";
 
   return(
-    <div style={{width:"100%",height:"100vh",overflow:"hidden",position:"relative",background:"#060a0f",fontFamily:"'Outfit',sans-serif",color:"#fff"}}>
+    <div style={{width:"100%",height:"100vh",overflow:"hidden",position:"relative",fontFamily:"'Outfit',sans-serif",color:"#fff",background:"#070b11"}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&family=Amiri:wght@400;700&display=swap');
         *{margin:0;padding:0;box-sizing:border-box}
-        @keyframes breathe{0%,100%{opacity:.4}50%{opacity:.7}}
-        @keyframes colonPulse{0%,100%{opacity:.7}50%{opacity:.15}}
-        @keyframes countGrad{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-        @keyframes ringPulse{0%,100%{filter:drop-shadow(0 0 4px rgba(52,211,153,.2))}50%{filter:drop-shadow(0 0 12px rgba(52,211,153,.5))}}
-        @keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes dotGlow{0%,100%{box-shadow:0 0 4px rgba(52,211,153,.3)}50%{box-shadow:0 0 14px rgba(52,211,153,.7)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes colonB{0%,100%{opacity:.6}50%{opacity:.12}}
+        @keyframes countG{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+        @keyframes dotPulse{0%,100%{box-shadow:0 0 6px ${G}.3)}50%{box-shadow:0 0 18px ${G}.7)}}
       `}</style>
 
-      {/* Particle canvas */}
       <canvas ref={canvasRef} style={{position:"absolute",inset:0,zIndex:1}}/>
+      <div style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",background:`radial-gradient(ellipse 55% 45% at 25% 35%,${G}.035),transparent),radial-gradient(ellipse 45% 40% at 80% 70%,rgba(80,100,220,.025),transparent)`}}/>
 
-      {/* Atmospheric light */}
-      <div style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",
-        background:"radial-gradient(ellipse 60% 50% at 25% 30%, rgba(52,211,153,.04), transparent),radial-gradient(ellipse 50% 40% at 75% 70%, rgba(100,130,255,.03), transparent)"
-      }}/>
+      <div style={{position:"relative",zIndex:3,height:"100%",display:"flex",padding:"28px 40px 16px"}}>
 
-      {/* Content */}
-      <div style={{position:"relative",zIndex:3,height:"100%",display:"flex",flexDirection:"column",padding:"32px 56px 20px"}}>
+        {/* ═══════ LEFT — 52% ═══════ */}
+        <div style={{flex:"0 0 52%",display:"flex",flexDirection:"column",paddingRight:28,animation:"fadeUp .8s ease both"}}>
 
-        {/* ═══ TOP BAR ═══ */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:0,animation:"slideIn .8s ease both"}}>
-          <div>
-            <div style={{fontSize:9,fontWeight:500,letterSpacing:".35em",color:"rgba(255,255,255,.2)",textTransform:"uppercase"}}>{C.sub}</div>
-            <div style={{fontSize:32,fontWeight:200,letterSpacing:".04em",marginTop:4,color:"rgba(255,255,255,.9)"}}>{C.name}</div>
+          {/* Header */}
+          <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:24}}>
+            <svg width="34" height="34" viewBox="0 0 50 50" style={{flexShrink:0,marginTop:2,opacity:.6}}>
+              <circle cx="19" cy="24" r="13.5" fill="none" stroke={`${G}.5)`} strokeWidth="1.5"/>
+              <circle cx="26" cy="24" r="12" fill="#070b11"/>
+              <polygon points="39,10 40.8,14.5 45.5,14.5 41.8,17.5 43.2,22 39,19 34.8,22 36.2,17.5 32.5,14.5 37.2,14.5" fill={`${G}.4)`}/>
+            </svg>
+            <div>
+              <div style={{fontSize:10.5,fontWeight:500,letterSpacing:".12em",color:"rgba(255,255,255,.25)"}}>{C.line1}</div>
+              <div style={{fontSize:9.5,fontWeight:400,letterSpacing:".08em",color:"rgba(255,255,255,.15)",marginTop:2}}>{C.line2}</div>
+              <div style={{fontSize:15,fontWeight:300,color:`${G}.55)`,fontStyle:"italic",marginTop:5}}>{C.line3}</div>
+            </div>
           </div>
-          <div style={{textAlign:"right",marginTop:4}}>
-            <div style={{fontSize:12,fontWeight:300,color:"rgba(255,255,255,.25)"}}>{DB[now.getDay()]}, {now.getDate()}. {MO[now.getMonth()]} {now.getFullYear()}</div>
-            <div style={{fontSize:14,fontWeight:400,color:"rgba(52,211,153,.5)",marginTop:4}}>{hij.d}. {hij.mn} {hij.y}.</div>
+
+          {/* Clock — glass card */}
+          <div style={{
+            background:"rgba(255,255,255,.025)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",
+            border:"1px solid rgba(255,255,255,.04)",borderRadius:20,
+            padding:"28px 0",textAlign:"center",marginBottom:20,
+            boxShadow:"0 4px 40px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03)",
+          }}>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",lineHeight:1}}>
+              <span style={{fontSize:76,fontWeight:200,letterSpacing:"-0.05em",color:"rgba(255,255,255,.9)"}}>{hh}</span>
+              <span style={{fontSize:76,fontWeight:200,color:`${G}.3)`,animation:"colonB 2s ease-in-out infinite",margin:"0 -2px"}}>:</span>
+              <span style={{fontSize:76,fontWeight:200,letterSpacing:"-0.05em",color:"rgba(255,255,255,.9)"}}>{mi}</span>
+              <span style={{fontSize:40,fontWeight:100,color:"rgba(255,255,255,.12)",marginLeft:4}}>{ss}</span>
+            </div>
+          </div>
+
+          {/* Weekday pills */}
+          <div style={{display:"flex",justifyContent:"center",gap:12,marginBottom:18}}>
+            {DA.map((d,i)=>{
+              const isT=i===now.getDay();
+              return <div key={i} style={{
+                width:36,height:36,borderRadius:"50%",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:13,fontWeight:isT?700:400,
+                background:isT?`${G}.8)`:"transparent",
+                color:isT?"#070b11":"rgba(255,255,255,.15)",
+                border:isT?"none":"1px solid rgba(255,255,255,.04)",
+                boxShadow:isT?`0 0 16px ${G}.3)`:undefined,
+                transition:"all .5s ease",
+              }}>{d}</div>;
+            })}
+          </div>
+
+          {/* Date badges */}
+          <div style={{display:"flex",justifyContent:"center",gap:12,marginBottom:24}}>
+            <div style={{
+              background:`${G}.12)`,border:`1px solid ${G}.15)`,borderRadius:12,
+              padding:"9px 24px",fontSize:14,fontWeight:500,
+              color:`${G}.8)`,letterSpacing:".01em",
+            }}>{dateStr}</div>
+            <div style={{
+              background:"rgba(255,255,255,.03)",border:"1px solid rgba(255,255,255,.04)",borderRadius:12,
+              padding:"9px 24px",fontSize:14,fontWeight:400,color:"rgba(255,255,255,.5)",
+              textAlign:"center",lineHeight:1.3,
+            }}>{hij.d}. {hij.mn}<br/>{hij.y}.</div>
+          </div>
+
+          {/* Countdown */}
+          <div style={{textAlign:"center",marginBottom:24}}>
+            <div style={{fontSize:12,fontWeight:400,color:"rgba(255,255,255,.2)",letterSpacing:".15em",textTransform:"uppercase"}}>{nxt.n}</div>
+            <div style={{
+              fontSize:54,fontWeight:600,fontFamily:"'JetBrains Mono',monospace",
+              letterSpacing:"-0.03em",marginTop:6,
+              background:`linear-gradient(135deg,#34d399,#6ee7b7,#34d399)`,backgroundSize:"200% 200%",
+              animation:"countG 3s ease infinite",
+              WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
+            }}>{nxt.cd}</div>
+          </div>
+
+          {/* Welcome */}
+          <div style={{
+            marginTop:"auto",
+            background:`linear-gradient(135deg,${G}.12),${G}.06))`,
+            border:`1px solid ${G}.1)`,borderRadius:16,
+            padding:"14px 24px",textAlign:"center",
+            boxShadow:`0 2px 20px ${G}.05)`,
+          }}>
+            <div style={{fontSize:13,fontWeight:400,color:"rgba(255,255,255,.5)",lineHeight:1.7}}>
+              {C.welcome1}<br/><span style={{color:`${G}.7)`,fontWeight:500}}>{C.welcome2}</span>
+            </div>
           </div>
         </div>
 
-        {/* Thin line */}
-        <div style={{height:1,background:"linear-gradient(90deg,rgba(52,211,153,.15),rgba(255,255,255,.03) 50%,transparent)",margin:"16px 0 0"}}/>
+        {/* ═══════ DIVIDER ═══════ */}
+        <div style={{width:1,background:`linear-gradient(180deg,transparent,${G}.1),transparent)`,margin:"20px 12px",flexShrink:0}}/>
 
-        {/* ═══ HERO SECTION ═══ */}
-        <div style={{flex:1,display:"flex",alignItems:"center",gap:0}}>
+        {/* ═══════ RIGHT — 48% ═══════ */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",paddingLeft:16,animation:"fadeUp .8s ease both",animationDelay:".15s"}}>
 
-          {/* LEFT — THE CLOCK */}
-          <div style={{flex:"0 0 45%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",animation:"slideIn 1s ease both",animationDelay:".2s"}}>
-
-            {/* Massive clock */}
-            <div style={{fontFamily:"'JetBrains Mono',monospace",lineHeight:.82,textAlign:"center",position:"relative"}}>
-              <div style={{fontSize:160,fontWeight:100,letterSpacing:"-0.08em",color:"rgba(255,255,255,.92)"}}>
-                {hh}
-                <span style={{animation:"colonPulse 2s ease-in-out infinite",color:"rgba(52,211,153,.35)",margin:"0 -8px",fontSize:120,fontWeight:100}}>:</span>
-                {mi}
-              </div>
-              <div style={{fontSize:32,fontWeight:100,color:"rgba(255,255,255,.08)",letterSpacing:".15em",marginTop:-8}}>{ss}</div>
-            </div>
-
-            {/* Countdown ring */}
-            <div style={{position:"relative",marginTop:36,width:130,height:130,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="130" height="130" style={{position:"absolute",transform:"rotate(-90deg)",animation:"ringPulse 4s ease-in-out infinite"}}>
-                <circle cx="65" cy="65" r={arcRadius} fill="none" stroke="rgba(255,255,255,.03)" strokeWidth="2"/>
-                <circle cx="65" cy="65" r={arcRadius} fill="none" stroke="rgba(52,211,153,.4)" strokeWidth="2"
-                  strokeDasharray={arcCirc} strokeDashoffset={arcOffset}
-                  strokeLinecap="round" style={{transition:"stroke-dashoffset 1s linear"}}/>
-              </svg>
-              <div style={{textAlign:"center",position:"relative",zIndex:1}}>
-                <div style={{fontSize:8,fontWeight:600,letterSpacing:".3em",color:"rgba(255,255,255,.15)",textTransform:"uppercase"}}>{nxt.n}</div>
-                <div style={{
-                  fontSize:24,fontWeight:600,fontFamily:"'JetBrains Mono',monospace",marginTop:4,
-                  background:"linear-gradient(135deg,#34d399,#6ee7b7,#34d399)",backgroundSize:"200% 200%",
-                  animation:"countGrad 4s ease infinite",
-                  WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
-                }}>{nxt.cd}</div>
-              </div>
-            </div>
-
-            {/* Jumuah — minimal */}
-            <div style={{marginTop:32,display:"flex",gap:28,alignItems:"center"}}>
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:8,fontWeight:500,letterSpacing:".25em",color:"rgba(255,255,255,.1)",textTransform:"uppercase"}}>Hutba</div>
-                <div style={{fontSize:22,fontWeight:100,fontFamily:"'JetBrains Mono',monospace",color:"rgba(255,255,255,.3)",marginTop:4}}>{C.khutba}</div>
-              </div>
-              <div style={{width:1,height:28,background:"rgba(255,255,255,.04)"}}/>
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:8,fontWeight:500,letterSpacing:".25em",color:"rgba(255,255,255,.1)",textTransform:"uppercase"}}>Džuma</div>
-                <div style={{fontSize:22,fontWeight:400,fontFamily:"'JetBrains Mono',monospace",color:"rgba(255,255,255,.6)",marginTop:4}}>{C.jumuah}</div>
-              </div>
-            </div>
+          {/* Header */}
+          <div style={{
+            background:`linear-gradient(135deg,${G}.15),${G}.05))`,
+            border:`1px solid ${G}.12)`,borderRadius:16,
+            padding:"14px 32px",textAlign:"center",marginBottom:12,
+            boxShadow:`0 2px 20px ${G}.06)`,
+          }}>
+            <div style={{fontSize:16,fontWeight:700,letterSpacing:".18em",color:`${G}.8)`}}>VRIJEME NAMAZA</div>
           </div>
 
-          {/* RIGHT — PRAYER TIMES */}
-          <div style={{flex:1,paddingLeft:40,display:"flex",flexDirection:"column",justifyContent:"center",gap:0,animation:"slideIn 1s ease both",animationDelay:".4s"}}>
-
+          {/* Prayer rows */}
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:0}}>
             {prayers.map((p,i)=>{
-              const isA=act===p.k;
+              const isA=p.k!=="Sunrise"&&act===p.k;
               return(
                 <div key={p.k} style={{
-                  display:"flex",alignItems:"center",
-                  padding:"22px 0",
-                  borderBottom:i<prayers.length-1?"1px solid rgba(255,255,255,.025)":"none",
+                  display:"flex",alignItems:"center",padding:"16px 8px",
+                  borderBottom:i<prayers.length-1?`1px solid rgba(255,255,255,.02)`:"none",
                   position:"relative",
-                  animation:"slideIn .7s ease both",animationDelay:`${.5+i*.1}s`,
+                  animation:"fadeUp .6s ease both",animationDelay:`${.3+i*.08}s`,
                 }}>
-                  {/* Active indicator */}
-                  {isA && <div style={{
-                    position:"absolute",left:-20,
-                    width:6,height:6,borderRadius:"50%",
-                    background:"#34d399",
-                    animation:"dotGlow 2s ease-in-out infinite",
-                  }}/>}
+                  {/* Active dot */}
+                  {isA&&<div style={{position:"absolute",left:-8,width:5,height:5,borderRadius:"50%",background:"#34d399",animation:"dotPulse 2.5s ease-in-out infinite"}}/>}
 
-                  {/* Name */}
-                  <div style={{width:140}}>
-                    <div style={{
-                      fontSize:isA?21:18,fontWeight:isA?500:200,
-                      color:isA?"rgba(52,211,153,.9)":"rgba(255,255,255,.35)",
-                      transition:"all .6s cubic-bezier(.4,0,.2,1)",
-                      letterSpacing:".02em",
-                    }}>{p.bs}</div>
-                  </div>
+                  {/* BS name */}
+                  <div style={{width:100,fontSize:isA?17:15,fontWeight:isA?500:300,color:isA?`${G}.9)`:"rgba(255,255,255,.35)",transition:"all .5s ease"}}>{p.bs}</div>
 
-                  {/* Adhan time */}
-                  <div style={{flex:1}}>
+                  {/* Time */}
+                  <div style={{flex:1,textAlign:"center"}}>
                     <span style={{
-                      fontSize:isA?52:44,fontWeight:isA?600:200,
+                      fontSize:isA?46:40,fontWeight:isA?700:200,
                       fontFamily:"'JetBrains Mono',monospace",
-                      color:isA?"rgba(255,255,255,.95)":"rgba(255,255,255,.55)",
-                      letterSpacing:"-0.04em",
-                      transition:"all .6s cubic-bezier(.4,0,.2,1)",
+                      color:isA?"rgba(255,255,255,.95)":"rgba(255,255,255,.6)",
+                      letterSpacing:"-0.03em",transition:"all .5s ease",
                     }}>{p.t}</span>
                   </div>
 
-                  {/* Iqama */}
-                  <div style={{width:100,textAlign:"right"}}>
-                    <div style={{fontSize:8,fontWeight:500,letterSpacing:".2em",color:"rgba(255,255,255,.08)",textTransform:"uppercase",marginBottom:2}}>Ikamet</div>
-                    <span style={{
-                      fontSize:18,fontWeight:200,
-                      fontFamily:"'JetBrains Mono',monospace",
-                      color:isA?"rgba(52,211,153,.5)":"rgba(255,255,255,.12)",
-                      transition:"all .6s ease",
-                    }}>{p.iq}</span>
-                  </div>
+                  {/* Arabic */}
+                  <div style={{width:60,textAlign:"right",fontSize:18,fontFamily:"'Amiri',serif",color:isA?"rgba(255,255,255,.25)":"rgba(255,255,255,.08)",direction:"rtl",transition:"all .5s ease"}}>{p.ar}</div>
                 </div>
               );
             })}
-
-            {/* Sunrise — separate, minimal */}
-            {times && (
-              <div style={{marginTop:8,paddingTop:12,display:"flex",alignItems:"center",gap:12,animation:"slideIn .7s ease both",animationDelay:"1.1s"}}>
-                <div style={{fontSize:10,fontWeight:300,color:"rgba(255,255,255,.12)",letterSpacing:".1em"}}>Izlazak sunca</div>
-                <div style={{flex:1,height:1,background:"rgba(255,255,255,.02)"}}/>
-                <div style={{fontSize:16,fontWeight:200,fontFamily:"'JetBrains Mono',monospace",color:"rgba(255,255,255,.15)"}}>{cl(times.Sunrise)}</div>
-              </div>
-            )}
           </div>
         </div>
+      </div>
 
-        {/* ═══ FOOTER ═══ */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8}}>
-          <div style={{fontSize:10,fontWeight:200,color:"rgba(255,255,255,.1)"}}>Powered by Samil Fazlic</div>
-          <div style={{display:"flex",gap:24}}>
-            <span style={{fontSize:9,fontWeight:300,color:"rgba(255,255,255,.08)",letterSpacing:".1em"}}>api.aladhan.com</span>
-            <span style={{fontSize:9,fontWeight:300,color:"rgba(255,255,255,.08)",letterSpacing:".1em"}}>MWL 18° / 17°</span>
-          </div>
-        </div>
+      {/* Footer */}
+      <div style={{position:"absolute",bottom:10,left:0,right:0,zIndex:4,textAlign:"center",fontSize:9,fontWeight:300,color:"rgba(255,255,255,.08)",letterSpacing:".1em"}}>
+        Powered by Samil Fazlic
       </div>
     </div>
   );
